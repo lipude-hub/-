@@ -1,0 +1,2277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>“银发经济”与适老化设施空间错位分析大屏</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    :root {
+      --bg-deep: #0f1325;
+      --bg-panel: rgba(20, 30, 58, 0.55);
+      --bg-panel-strong: rgba(22, 34, 66, 0.72);
+      --line-neon: rgba(63, 190, 255, 0.65);
+      --line-neon-soft: rgba(63, 190, 255, 0.25);
+      --text-main: #d7e8ff;
+      --text-sub: #93aed8;
+      --safe-blue: #1e90ff;
+      --mid-cyan: #35d7ff;
+      --warn-orange: #ff9f43;
+      --warn-red: #ff4d4f;
+      --弹窗背景: rgba(7, 13, 30, 0.72);
+      --弹窗描边: rgba(120, 212, 255, 0.36);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+      color: var(--text-main);
+      background:
+        radial-gradient(circle at 15% 15%, rgba(49, 130, 255, 0.18), transparent 36%),
+        radial-gradient(circle at 85% 20%, rgba(0, 214, 255, 0.12), transparent 34%),
+        radial-gradient(circle at 50% 95%, rgba(255, 77, 79, 0.10), transparent 40%),
+        linear-gradient(180deg, #0b1020 0%, #0f1325 50%, #0b1228 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(120, 180, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(120, 180, 255, 0.06) 1px, transparent 1px);
+      background-size: 36px 36px, 36px 36px;
+      mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.85) 45%, rgba(0, 0, 0, 0.2) 100%);
+      z-index: 0;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(10, 20, 40, 0.3);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(63, 190, 255, 0.4);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(63, 190, 255, 0.7);
+    }
+
+    .header {
+      position: relative;
+      z-index: 2;
+      height: 10vh;
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 2px;
+      border-bottom: 1px solid rgba(94, 176, 255, 0.22);
+      background: linear-gradient(180deg, rgba(18, 30, 58, 0.78), rgba(18, 30, 58, 0.18));
+      backdrop-filter: blur(2px);
+    }
+
+    .header-title {
+      font-size: clamp(22px, 2.1vw, 40px);
+      font-weight: 700;
+      color: #e8f3ff;
+      text-shadow:
+        0 0 8px rgba(95, 205, 255, 0.55),
+        0 0 18px rgba(77, 173, 255, 0.42),
+        0 0 36px rgba(48, 130, 255, 0.35);
+      animation: 标题呼吸 2.8s ease-in-out infinite;
+    }
+
+    @keyframes 标题呼吸 {
+      0%, 100% {
+        opacity: 0.96;
+        text-shadow: 0 0 8px rgba(95, 205, 255, 0.55), 0 0 18px rgba(77, 173, 255, 0.42), 0 0 36px rgba(48, 130, 255, 0.35);
+      }
+      50% {
+        opacity: 1;
+        text-shadow: 0 0 12px rgba(95, 205, 255, 0.68), 0 0 22px rgba(77, 173, 255, 0.55), 0 0 42px rgba(48, 130, 255, 0.45);
+      }
+    }
+
+    .main {
+      position: relative;
+      z-index: 2;
+      height: 90vh;
+      width: 100%;
+      padding: 1.2vh 1vw 1.6vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+      gap: 0.9vw;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .main > * {
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .side {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 1.2vh;
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .panel {
+      position: relative;
+      min-height: 0;
+      min-width: 0;
+      border: 1px solid var(--line-neon);
+      background: linear-gradient(180deg, var(--bg-panel-strong), var(--bg-panel));
+      box-shadow: inset 0 0 25px rgba(38, 133, 255, 0.10), 0 0 18px var(--line-neon-soft);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: 10px;
+      border: 1px solid rgba(123, 225, 255, 0.18);
+      box-shadow: inset 0 0 20px rgba(99, 192, 255, 0.14);
+    }
+
+    .panel-title {
+      height: 38px;
+      line-height: 38px;
+      padding: 0 14px;
+      font-size: 14px;
+      color: #bde9ff;
+      border-bottom: 1px solid rgba(100, 187, 255, 0.22);
+      background: linear-gradient(90deg, rgba(40, 120, 220, 0.35), rgba(35, 70, 130, 0.10));
+      letter-spacing: 1px;
+    }
+
+    .panel-body {
+      position: relative;
+      height: calc(100% - 38px);
+      min-width: 0;
+      color: var(--text-sub);
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.8;
+      overflow: hidden;
+    }
+
+    .chart-canvas {
+      width: 100%;
+      height: 100%;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .center-wrap {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 1fr;
+      overflow: hidden;
+    }
+
+    .map-panel {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      border-radius: 12px;
+      border: 1px solid rgba(83, 175, 255, 0.65);
+      background:
+        radial-gradient(circle at 50% 10%, rgba(44, 138, 255, 0.12), transparent 40%),
+        linear-gradient(180deg, rgba(20, 32, 58, 0.75), rgba(12, 22, 46, 0.75));
+      box-shadow: inset 0 0 32px rgba(31, 115, 230, 0.12), 0 0 24px rgba(63, 190, 255, 0.25);
+      overflow: hidden;
+    }
+
+    .map-panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(120deg, transparent 35%, rgba(160, 220, 255, 0.08) 50%, transparent 65%);
+      animation: 扫描光效 6s linear infinite;
+    }
+
+    @keyframes 扫描光效 {
+      0% { transform: translateX(-30%); }
+      100% { transform: translateX(30%); }
+    }
+
+    .map-title {
+      position: absolute;
+      top: 10px;
+      left: 14px;
+      z-index: 4;
+      font-size: 14px;
+      color: #bde9ff;
+      text-shadow: 0 0 10px rgba(93, 200, 255, 0.5);
+      letter-spacing: 1px;
+      pointer-events: none;
+    }
+
+    .map-tip {
+      position: absolute;
+      top: 34px;
+      right: auto;
+      left: 14px;
+      z-index: 4;
+      font-size: 12px;
+      color: rgba(141, 183, 227, 0.75);
+      pointer-events: none;
+    }
+
+    #chinaMap {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .搜索容器 {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .搜索输入区 {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .搜索输入框 {
+      width: 100%;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid rgba(73, 190, 255, 0.75);
+      background: linear-gradient(180deg, rgba(9, 18, 38, 0.95), rgba(16, 30, 60, 0.78));
+      color: #d9f2ff;
+      padding: 0 10px;
+      outline: none;
+      box-shadow: inset 0 0 12px rgba(63, 190, 255, 0.18), 0 0 10px rgba(45, 156, 255, 0.24);
+      transition: all 0.2s ease;
+    }
+
+    .搜索输入框:focus {
+      border-color: rgba(119, 223, 255, 0.95);
+      box-shadow: inset 0 0 14px rgba(63, 190, 255, 0.24), 0 0 12px rgba(63, 190, 255, 0.35);
+    }
+
+    .搜索按钮 {
+      min-width: 72px;
+      height: 34px;
+      border: 1px solid rgba(255, 178, 82, 0.9);
+      border-radius: 8px;
+      cursor: pointer;
+      color: #fff1d4;
+      font-weight: 600;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, #ff8f1f 0%, #ff4d4f 100%);
+      box-shadow: 0 0 14px rgba(255, 121, 69, 0.35);
+    }
+
+    .搜索按钮:hover {
+      filter: brightness(1.1);
+    }
+
+    .搜索结果区 {
+      border: 1px solid rgba(62, 168, 255, 0.35);
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(20, 36, 70, 0.65), rgba(10, 20, 40, 0.48));
+      padding: 10px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      box-shadow: inset 0 0 14px rgba(55, 160, 255, 0.12);
+      display: grid;
+      grid-template-rows: auto auto auto;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .检索城市名 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #9cd9ff;
+      text-shadow: 0 0 8px rgba(80, 184, 255, 0.35);
+    }
+
+    .检索文本行 {
+      color: #cfe8ff;
+      font-size: 13px;
+      letter-spacing: 0.4px;
+    }
+
+    .进入详情按钮 {
+      justify-self: start;
+      border: 1px solid rgba(102, 220, 255, 0.78);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: #d9f8ff;
+      cursor: pointer;
+      background: linear-gradient(100deg, rgba(30, 144, 255, 0.42), rgba(24, 216, 255, 0.22));
+      box-shadow: 0 0 10px rgba(53, 215, 255, 0.35);
+    }
+
+    .进入详情按钮:hover {
+      filter: brightness(1.08);
+    }
+
+    .评分提示框 {
+      border: 1px solid rgba(255, 145, 80, 0.42);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: linear-gradient(90deg, rgba(255, 125, 74, 0.14), rgba(43, 131, 255, 0.08));
+      color: #ffd9bb;
+      font-size: 12px;
+      line-height: 1.65;
+      margin-top: 6px;
+    }
+
+    .评分提示框.安全 {
+      border-color: rgba(79, 196, 255, 0.45);
+      background: linear-gradient(90deg, rgba(65, 176, 255, 0.16), rgba(51, 211, 255, 0.08));
+      color: #caedff;
+    }
+
+    .评分提示框.中压 {
+      border-color: rgba(255, 170, 76, 0.46);
+      background: linear-gradient(90deg, rgba(255, 158, 62, 0.16), rgba(255, 214, 117, 0.08));
+      color: #ffe1b5;
+    }
+
+    .评分提示框.高压 {
+      border-color: rgba(255, 90, 90, 0.55);
+      background: linear-gradient(90deg, rgba(255, 76, 76, 0.18), rgba(255, 145, 74, 0.1));
+      color: #ffd2cc;
+    }
+
+    .详情遮罩 {
+      position: fixed;
+      inset: 0;
+      z-index: 1200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2, 8, 20, 0.38);
+      backdrop-filter: blur(9px);
+    }
+
+    .详情遮罩.显示 {
+      display: flex;
+      animation: 遮罩淡入 0.24s ease forwards;
+    }
+
+    @keyframes 遮罩淡入 {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .详情舱容器 {
+      width: min(94vw, 1600px);
+      height: min(88vh, 920px);
+      border-radius: 16px;
+      border: 1px solid var(--弹窗描边);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(56, 152, 255, 0.16), transparent 42%),
+        radial-gradient(circle at 90% 18%, rgba(44, 220, 255, 0.12), transparent 36%),
+        linear-gradient(180deg, rgba(10, 18, 40, 0.96), rgba(8, 14, 34, 0.92));
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45), inset 0 0 28px rgba(75, 180, 255, 0.14);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      transform: translateY(10px) scale(0.98);
+      animation: 弹窗入场 0.26s ease forwards;
+    }
+
+    @keyframes 弹窗入场 {
+      to {
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .详情头部 {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 62px;
+      border-bottom: 1px solid rgba(120, 210, 255, 0.24);
+      background: linear-gradient(90deg, rgba(24, 64, 118, 0.45), rgba(10, 26, 56, 0.15));
+      padding: 12px 16px;
+    }
+
+    .详情标题组 {
+      min-width: 0;
+    }
+
+    .详情主标题 {
+      font-size: clamp(20px, 1.7vw, 28px);
+      font-weight: 700;
+      color: #dff4ff;
+      letter-spacing: 1.4px;
+      text-shadow: 0 0 12px rgba(104, 208, 255, 0.35);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .详情副标题 {
+      font-size: 12px;
+      color: #9fc6ec;
+      margin-top: 2px;
+    }
+
+    .详情关闭按钮 {
+      border: 1px solid rgba(255, 162, 131, 0.72);
+      border-radius: 10px;
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
+      line-height: 1;
+      color: #ffd9cc;
+      background: linear-gradient(180deg, rgba(255, 95, 74, 0.34), rgba(255, 72, 72, 0.14));
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(255, 104, 82, 0.26);
+    }
+
+    .详情主体 {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.35fr);
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .详情面板 {
+      min-height: 0;
+      border: 1px solid rgba(100, 188, 255, 0.32);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(16, 29, 58, 0.65), rgba(10, 18, 38, 0.48));
+      box-shadow: inset 0 0 20px rgba(71, 171, 255, 0.10);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .详情面板标题 {
+      height: 36px;
+      line-height: 36px;
+      font-size: 13px;
+      color: #c1e8ff;
+      border-bottom: 1px solid rgba(110, 196, 255, 0.22);
+      background: linear-gradient(90deg, rgba(46, 128, 220, 0.34), rgba(35, 70, 130, 0.06));
+      padding: 0 12px;
+      letter-spacing: 0.8px;
+    }
+
+    .详情图表区 {
+      min-height: 0;
+      height: 100%;
+      position: relative;
+      padding: 6px;
+    }
+
+    #详情图表画布 {
+      width: 100%;
+      height: 100%;
+    }
+
+    .详情右侧内容 {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .分类标签区 {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-content: flex-start;
+      max-height: 112px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .分类标签 {
+      border: 1px solid rgba(96, 196, 255, 0.58);
+      border-radius: 999px;
+      color: #ccecff;
+      background: linear-gradient(180deg, rgba(27, 88, 162, 0.36), rgba(21, 57, 105, 0.2));
+      padding: 5px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .分类标签.激活 {
+      color: #0f2844;
+      background: linear-gradient(90deg, #5de2ff, #9ed8ff);
+      border-color: rgba(174, 240, 255, 0.95);
+      box-shadow: 0 0 12px rgba(93, 226, 255, 0.45);
+      font-weight: 700;
+    }
+
+    .设施列表区 {
+      min-height: 0;
+      border: 1px solid rgba(82, 170, 236, 0.28);
+      border-radius: 10px;
+      padding: 10px;
+      overflow-y: auto;
+      background: linear-gradient(180deg, rgba(7, 15, 34, 0.55), rgba(6, 12, 28, 0.45));
+    }
+
+    .设施卡片 {
+      border: 1px solid rgba(91, 188, 255, 0.24);
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      background: linear-gradient(90deg, rgba(20, 44, 86, 0.45), rgba(13, 30, 62, 0.22));
+      box-shadow: inset 0 0 8px rgba(67, 172, 255, 0.08);
+    }
+
+    .设施卡片:last-child {
+      margin-bottom: 0;
+    }
+
+    .设施名称 {
+      color: #d7f0ff;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 3px;
+      word-break: break-all;
+    }
+
+    .设施信息行 {
+      color: #a8ccec;
+      font-size: 12px;
+      line-height: 1.5;
+      word-break: break-all;
+    }
+
+    .列表截断提示 {
+      font-size: 12px;
+      color: #ffd2a8;
+      border: 1px dashed rgba(255, 176, 122, 0.46);
+      border-radius: 8px;
+      background: rgba(255, 145, 66, 0.11);
+      padding: 7px 10px;
+      text-align: center;
+    }
+
+    .无数据状态 {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #9ab7d8;
+      text-align: center;
+      padding: 12px;
+    }
+
+    .无数据状态主文案 {
+      font-size: 15px;
+      color: #c9def6;
+    }
+
+    .无数据状态副文案 {
+      font-size: 12px;
+      color: #8eaed0;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 1280px) {
+      .main {
+        grid-template-columns: 1fr;
+        grid-template-rows: 24vh 1fr 24vh;
+      }
+
+      .side {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr;
+      }
+
+      .详情主体 {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(240px, 40%) minmax(0, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1 class="header-title">“银发经济”与适老化设施空间错位分析大屏</h1>
+  </header>
+
+  <main class="main">
+    <section class="side">
+      <div class="panel">
+        <div class="panel-title">适老化生态图谱（全国设施结构）</div>
+        <div class="panel-body" id="chart-rose"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">高危错位城市 Top 10</div>
+        <div class="panel-body" id="chart-bar"></div>
+      </div>
+    </section>
+
+    <section class="center-wrap">
+      <div class="map-panel">
+        <div class="map-title">全国市级适老化服务压力热力分布（点击地市可进入明细舱）</div>
+        <div class="map-tip">数据源：百度地图 + 阿里云 DataV GeoJSON</div>
+        <div id="chinaMap"></div>
+      </div>
+    </section>
+
+    <section class="side">
+      <div class="panel">
+        <div class="panel-title">银发宜居地智能检索与推荐</div>
+        <div class="panel-body" id="search-panel"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">供需匹配度四象限矩阵（Top 50）</div>
+        <div class="panel-body" id="chart-scatter"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="城市详情遮罩" class="详情遮罩">
+    <div class="详情舱容器" id="城市详情容器">
+      <div class="详情头部">
+        <div class="详情标题组">
+          <div id="详情主标题" class="详情主标题">城市详情舱</div>
+          <div id="详情副标题" class="详情副标题">设施结构与明细列表</div>
+        </div>
+        <button id="详情关闭按钮" class="详情关闭按钮" aria-label="关闭城市详情舱">×</button>
+      </div>
+      <div class="详情主体">
+        <section class="详情面板">
+          <div class="详情面板标题">比例视图：该城市设施类别占比</div>
+          <div class="详情图表区">
+            <div id="详情图表画布"></div>
+          </div>
+        </section>
+        <section class="详情面板">
+          <div class="详情面板标题">分类检索与设施明细</div>
+          <div class="详情右侧内容">
+            <div id="分类标签区" class="分类标签区"></div>
+            <div id="设施列表区" class="设施列表区"></div>
+            <div id="列表截断提示" class="列表截断提示" style="display: none;">仅展示前100条记录，完整数据已在内存中可用于后续二次检索。</div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const 地图地址 = 
+    "https://geo.datav.aliyun.com/areas_v3/bound/100000_full_city.json";
+    const 压力数据地址 = "./city_pressure_index.csv";
+    const 设施数据地址 = "./all_facilities_cleaned.csv";
+    const 列表渲染上限 = 100;
+
+    const 地图容器 = document.getElementById("chinaMap");
+    const 地图图表 = echarts.init(地图容器, null, { renderer: "canvas" });
+
+    let 全国玫瑰图 = null;
+    let 预警柱图 = null;
+    let 散点图 = null;
+    let 城市详情图 = null;
+
+    let 地图城市索引列表 = [];
+    let 压力数据行数组 = [];
+    let 设施数据行数组 = [];
+    let 城市设施字典 = Object.create(null);
+    let 城市别名索引 = new Map();
+    let 压力别名索引 = new Map();
+    let 全国设施类型数组 = [];
+    let lastRegion = "";
+
+    let 当前详情城市键 = "";
+    let 当前详情城市标题 = "";
+    let 当前详情分类 = "";
+
+    const 城市详情遮罩 = document.getElementById("城市详情遮罩");
+    const 详情主标题节点 = document.getElementById("详情主标题");
+    const 详情副标题节点 = document.getElementById("详情副标题");
+    const 分类标签区节点 = document.getElementById("分类标签区");
+    const 设施列表区节点 = document.getElementById("设施列表区");
+    const 列表截断提示节点 = document.getElementById("列表截断提示");
+
+    地图图表.showLoading("default", {
+      text: "地图与设施数据加载中...",
+      color: "#66d9ff",
+      textColor: "#9bc9ff",
+      maskColor: "rgba(15,19,37,0.65)"
+    });
+
+    function 解析CSV源(数据源, 是否下载) {
+      return new Promise(function(解析成功, 解析失败) {
+        Papa.parse(数据源, {
+          download: !!是否下载,
+          header: true,
+          skipEmptyLines: true,
+          dynamicTyping: true,
+          complete: function(结果) {
+            if (!结果 || !Array.isArray(结果.data)) {
+              解析失败(new Error("CSV 解析结果为空"));
+              return;
+            }
+            const 有效行 = 结果.data.filter(function(行) {
+              if (!行 || typeof 行 !== "object") {
+                return false;
+              }
+              return Object.keys(行).some(function(字段名) {
+                const 值 = 行[字段名];
+                return String(值 == null ? "" : 值).trim() !== "";
+              });
+            });
+            解析成功(有效行);
+          },
+          error: function(错误) {
+            解析失败(错误);
+          }
+        });
+      });
+    }
+
+    function 解析CSV(文件地址) {
+      return 解析CSV源(文件地址, true);
+    }
+
+    function 解析CSV文件对象(文件对象) {
+      return 解析CSV源(文件对象, false);
+    }
+
+    function 从地址提取文件名(地址) {
+      return String(地址 || "").split("/").pop().toLowerCase();
+    }
+
+    function 创建本地CSV加载面板() {
+      const 遮罩 = document.createElement("div");
+      遮罩.style.position = "fixed";
+      遮罩.style.inset = "0";
+      遮罩.style.zIndex = "1600";
+      遮罩.style.display = "flex";
+      遮罩.style.alignItems = "center";
+      遮罩.style.justifyContent = "center";
+      遮罩.style.background = "rgba(2, 8, 20, 0.55)";
+      遮罩.style.backdropFilter = "blur(4px)";
+
+      const 面板 = document.createElement("div");
+      面板.style.width = "min(92vw, 560px)";
+      面板.style.border = "1px solid rgba(120, 212, 255, 0.4)";
+      面板.style.borderRadius = "12px";
+      面板.style.padding = "16px";
+      面板.style.background = "linear-gradient(180deg, rgba(10,18,40,0.96), rgba(8,14,34,0.92))";
+      面板.style.boxShadow = "0 18px 48px rgba(0,0,0,0.45), inset 0 0 24px rgba(75,180,255,0.1)";
+
+      const 标题 = document.createElement("div");
+      标题.textContent = "检测到本地打开模式，请选择数据目录";
+      标题.style.fontSize = "18px";
+      标题.style.fontWeight = "700";
+      标题.style.color = "#dff4ff";
+      标题.style.marginBottom = "8px";
+
+      const 说明 = document.createElement("div");
+      说明.textContent = "浏览器对 file:// 读取 CSV 有跨域限制。点击下方按钮后，选择当前项目目录（包含 city_pressure_index.csv 和 all_facilities_cleaned.csv）即可继续。";
+      说明.style.fontSize = "13px";
+      说明.style.lineHeight = "1.7";
+      说明.style.color = "#a8ccec";
+
+      const 状态 = document.createElement("div");
+      状态.style.marginTop = "10px";
+      状态.style.minHeight = "20px";
+      状态.style.fontSize = "12px";
+      状态.style.color = "#ffd7b3";
+
+      const 按钮区 = document.createElement("div");
+      按钮区.style.marginTop = "14px";
+      按钮区.style.display = "flex";
+      按钮区.style.gap = "10px";
+
+      const 选择按钮 = document.createElement("button");
+      选择按钮.textContent = "选择目录并加载";
+      选择按钮.style.height = "34px";
+      选择按钮.style.padding = "0 14px";
+      选择按钮.style.border = "1px solid rgba(102, 220, 255, 0.78)";
+      选择按钮.style.borderRadius = "8px";
+      选择按钮.style.cursor = "pointer";
+      选择按钮.style.color = "#d9f8ff";
+      选择按钮.style.background = "linear-gradient(100deg, rgba(30, 144, 255, 0.42), rgba(24, 216, 255, 0.22))";
+
+      const 取消按钮 = document.createElement("button");
+      取消按钮.textContent = "取消";
+      取消按钮.style.height = "34px";
+      取消按钮.style.padding = "0 14px";
+      取消按钮.style.border = "1px solid rgba(255, 162, 131, 0.72)";
+      取消按钮.style.borderRadius = "8px";
+      取消按钮.style.cursor = "pointer";
+      取消按钮.style.color = "#ffd9cc";
+      取消按钮.style.background = "linear-gradient(180deg, rgba(255, 95, 74, 0.34), rgba(255, 72, 72, 0.14))";
+
+      按钮区.appendChild(选择按钮);
+      按钮区.appendChild(取消按钮);
+      面板.appendChild(标题);
+      面板.appendChild(说明);
+      面板.appendChild(状态);
+      面板.appendChild(按钮区);
+      遮罩.appendChild(面板);
+
+      document.body.appendChild(遮罩);
+
+      return {
+        遮罩: 遮罩,
+        状态: 状态,
+        选择按钮: 选择按钮,
+        取消按钮: 取消按钮
+      };
+    }
+
+    function 请求本地CSV文件() {
+      return new Promise(function(resolve, reject) {
+        const 面板实例 = 创建本地CSV加载面板();
+        const 需要文件名数组 = [从地址提取文件名(压力数据地址), 从地址提取文件名(设施数据地址)];
+        const 文件选择器 = document.createElement("input");
+        文件选择器.type = "file";
+        文件选择器.accept = ".csv,text/csv";
+        文件选择器.multiple = true;
+        文件选择器.setAttribute("webkitdirectory", "");
+        文件选择器.style.display = "none";
+        document.body.appendChild(文件选择器);
+
+        function 收尾清理() {
+          if (文件选择器.parentNode) {
+            文件选择器.parentNode.removeChild(文件选择器);
+          }
+          if (面板实例.遮罩.parentNode) {
+            面板实例.遮罩.parentNode.removeChild(面板实例.遮罩);
+          }
+        }
+
+        面板实例.取消按钮.addEventListener("click", function() {
+          收尾清理();
+          reject(new Error("用户取消本地 CSV 选择"));
+        });
+
+        面板实例.选择按钮.addEventListener("click", function() {
+          文件选择器.click();
+        });
+
+        文件选择器.addEventListener("change", async function() {
+          try {
+            面板实例.状态.textContent = "正在校验并解析 CSV...";
+            const 文件数组 = Array.from(文件选择器.files || []);
+            const 文件名映射 = new Map();
+
+            for (let i = 0; i < 文件数组.length; i += 1) {
+              const 文件项 = 文件数组[i];
+              const 文件名 = String((文件项 && 文件项.name) || "").toLowerCase();
+              if (文件名) {
+                文件名映射.set(文件名, 文件项);
+              }
+            }
+
+            const 缺失文件数组 = 需要文件名数组.filter(function(文件名) {
+              return !文件名映射.has(文件名);
+            });
+
+            if (缺失文件数组.length > 0) {
+              面板实例.状态.textContent = "未找到文件：" + 缺失文件数组.join("、") + "。请重新选择包含这两个 CSV 的目录。";
+              return;
+            }
+
+            const 压力文件对象 = 文件名映射.get(需要文件名数组[0]);
+            const 设施文件对象 = 文件名映射.get(需要文件名数组[1]);
+            const 结果 = await Promise.all([
+              解析CSV文件对象(压力文件对象),
+              解析CSV文件对象(设施文件对象)
+            ]);
+
+            收尾清理();
+            resolve(结果);
+          } catch (错误) {
+            面板实例.状态.textContent = "本地 CSV 解析失败，请确认文件编码和格式后重试。";
+            console.error("local csv parse error:", 错误);
+          }
+        });
+      });
+    }
+
+    async function 加载CSV数据() {
+      try {
+        return await Promise.all([
+          解析CSV(压力数据地址),
+          解析CSV(设施数据地址)
+        ]);
+      } catch (错误) {
+        if (window.location.protocol !== "file:") {
+          throw 错误;
+        }
+        return 请求本地CSV文件();
+      }
+    }
+
+    function 清洗城市名(原城市名) {
+      if (!原城市名) {
+        return "";
+      }
+
+      let 城市名 = (原城市名 + "").trim();
+      城市名 = 城市名.replace(/\s+/g, "");
+      城市名 = 城市名.replace(/[（(].*?[）)]/g, "");
+      城市名 = 城市名.replace(/市辖区$/g, "");
+
+      // 末尾这个市直接去掉
+      城市名 = 城市名.replace(/市$/g, "");
+
+      // 一堆民族自治州后缀也去掉
+      城市名 = 城市名
+        .replace(/(蒙古|回族|藏族|维吾尔|苗族|彝族|壮族|布依族|朝鲜族|满族|侗族|瑶族|白族|土家族|哈萨克|傣族|黎族|傈僳族|佤族|畲族|水族|东乡族|纳西族|景颇族|柯尔克孜|土族|达斡尔族|仫佬族|羌族|布朗族|撒拉族|毛南族|仡佬族|锡伯族|阿昌族|普米族|塔吉克族|怒族|乌孜别克族|俄罗斯族|鄂温克族|德昂族|保安族|裕固族|京族|塔塔尔族|独龙族|鄂伦春族|赫哲族|门巴族|珞巴族|基诺族)+自治州$/g, "")
+        .replace(/([一-龥]+族)+自治州$/g, "");
+
+      // 地区/盟后缀处理下
+      城市名 = 城市名.replace(/(地区|盟)$/g, "");
+
+      // 州字别太激进，2个字的先不动
+      if (城市名.endsWith("州") && 城市名.length > 2) {
+        城市名 = 城市名.slice(0, -1);
+      }
+
+      return 城市名;
+    }
+
+    function 生成城市别名(原城市名) {
+      const 别名集合 = new Set();
+      const 原名 = ((原城市名 || "") + "").trim();
+      const 清洗名 = 清洗城市名(原名);
+
+      if (原名) {
+        别名集合.add(原名);
+      }
+      if (清洗名) {
+        别名集合.add(清洗名);
+        别名集合.add(清洗名 + "市");
+        别名集合.add(清洗名 + "地区");
+        别名集合.add(清洗名 + "自治州");
+      }
+
+      return Array.from(别名集合).filter(function(别名) {
+        return !!别名;
+      });
+    }
+
+    const districtMap = {
+      "北京市": [
+        "东城区", "西城区", "朝阳区", "丰台区", "石景山区", "海淀区", "门头沟区", "房山区",
+        "通州区", "顺义区", "昌平区", "大兴区", "怀柔区", "平谷区", "密云区", "延庆区"
+      ],
+      "天津市": [
+        "和平区", "河东区", "河西区", "南开区", "河北区", "红桥区", "东丽区", "西青区",
+        "津南区", "北辰区", "武清区", "宝坻区", "滨海新区", "宁河区", "静海区", "蓟州区", "蓟县"
+      ],
+      "上海市": [
+        "黄浦区", "徐汇区", "长宁区", "静安区", "普陀区", "虹口区", "杨浦区", "闵行区",
+        "宝山区", "嘉定区", "浦东新区", "金山区", "松江区", "青浦区", "奉贤区", "崇明区", "南汇区"
+      ],
+      "重庆市": [
+        "万州区", "涪陵区", "渝中区", "大渡口区", "江北区", "沙坪坝区", "九龙坡区", "南岸区", "北碚区", "渝北区",
+        "巴南区", "黔江区", "长寿区", "江津区", "合川区", "永川区", "南川区", "綦江区", "大足区", "璧山区",
+        "铜梁区", "潼南区", "荣昌区", "开州区", "梁平区", "武隆区", "城口县", "丰都县", "垫江县", "忠县",
+        "云阳县", "奉节县", "巫山县", "巫溪县", "石柱土家族自治县", "秀山土家族苗族自治县", "酉阳土家族苗族自治县", "彭水苗族土家族自治县", "万盛区"
+      ]
+    };
+
+    const districtOwnerIdx = (function() {
+      const 归属索引 = Object.create(null);
+      const 主城市数组 = Object.keys(districtMap);
+
+      for (let i = 0; i < 主城市数组.length; i += 1) {
+        const 主城市名 = 主城市数组[i];
+        const 辖区数组 = districtMap[主城市名] || [];
+        for (let j = 0; j < 辖区数组.length; j += 1) {
+          const 辖区名 = String(辖区数组[j] || "").trim();
+          if (!辖区名) {
+            continue;
+          }
+          归属索引[辖区名] = 主城市名;
+          归属索引[清洗城市名(辖区名)] = 主城市名;
+        }
+      }
+
+      return 归属索引;
+    })();
+
+    function 获取直辖市归属(区名) {
+      const 原名 = String(区名 || "").trim();
+      if (!原名) {
+        return "";
+      }
+      return districtOwnerIdx[原名] || districtOwnerIdx[清洗城市名(原名)] || "";
+    }
+
+    function 构建地图城市索引(地图GeoJSON) {
+      return (地图GeoJSON.features || []).map(function(要素) {
+        const 区域名 = 要素 && 要素.properties ? String(要素.properties.name || "").trim() : "";
+        const 别名数组 = 生成城市别名(区域名);
+        const 归属主城市 = 获取直辖市归属(区域名);
+        if (归属主城市) {
+          const 主城市别名数组 = 生成城市别名(归属主城市);
+          for (let i = 0; i < 主城市别名数组.length; i += 1) {
+            const 主城市别名 = 主城市别名数组[i];
+            if (主城市别名 && !别名数组.includes(主城市别名)) {
+              别名数组.push(主城市别名);
+            }
+          }
+        }
+        return {
+          地图名: 区域名,
+          别名数组: 别名数组
+        };
+      }).filter(function(项) {
+        return !!项.地图名;
+      });
+    }
+
+    function findBestGeoName(输入城市名, 索引列表) {
+      const 目标索引列表 = Array.isArray(索引列表) ? 索引列表 : 地图城市索引列表;
+      const 输入别名数组 = 生成城市别名(输入城市名);
+      if (!输入别名数组.length || !目标索引列表.length) {
+        return "";
+      }
+
+      for (let i = 0; i < 目标索引列表.length; i += 1) {
+        const 当前项 = 目标索引列表[i];
+        const 地图别名数组 = 当前项.别名数组;
+        for (let a = 0; a < 输入别名数组.length; a += 1) {
+          const 输入别名 = 输入别名数组[a];
+          for (let b = 0; b < 地图别名数组.length; b += 1) {
+            const 地图别名 = 地图别名数组[b];
+            if (输入别名 === 地图别名) {
+              return 当前项.地图名;
+            }
+          }
+        }
+      }
+
+      for (let i = 0; i < 目标索引列表.length; i += 1) {
+        const 当前项 = 目标索引列表[i];
+        const 地图别名数组 = 当前项.别名数组;
+        for (let a = 0; a < 输入别名数组.length; a += 1) {
+          const 输入别名 = 输入别名数组[a];
+          for (let b = 0; b < 地图别名数组.length; b += 1) {
+            const 地图别名 = 地图别名数组[b];
+            if (输入别名.indexOf(地图别名) > -1 || 地图别名.indexOf(输入别名) > -1) {
+              return 当前项.地图名;
+            }
+          }
+        }
+      }
+
+      for (let i = 0; i < 目标索引列表.length; i += 1) {
+        const 当前项 = 目标索引列表[i];
+        const 地图别名数组 = 当前项.别名数组;
+        for (let a = 0; a < 输入别名数组.length; a += 1) {
+          const 输入别名 = 输入别名数组[a];
+          for (let b = 0; b < 地图别名数组.length; b += 1) {
+            const 地图别名 = 地图别名数组[b];
+            if (输入别名.slice(0, 2) === 地图别名.slice(0, 2)) {
+              return 当前项.地图名;
+            }
+          }
+        }
+      }
+
+      return "";
+    }
+
+    function 匹配地图城市名(输入城市名, 索引列表) {
+      return findBestGeoName(输入城市名, 索引列表);
+    }
+
+    function 构建设施索引(设施行数组) {
+      const 设施字典 = Object.create(null);
+      const 全国分类计数 = Object.create(null);
+      const 城市映射索引 = new Map();
+
+      for (let i = 0; i < 设施行数组.length; i += 1) {
+        const 行 = 设施行数组[i];
+        let 原城市名 = String(行["城市"] || "").trim();
+        const 地址 = String(行["地址"] || "");
+        const 省份 = String(行["省份"] || "").trim();
+        const 直辖市数组 = ["北京市", "天津市", "上海市", "重庆市"];
+        let 归属主市 = "";
+
+        if (直辖市数组.includes(省份)) {
+          归属主市 = 省份;
+        } else if (直辖市数组.includes(原城市名)) {
+          归属主市 = 原城市名;
+        } else if (直辖市数组.includes(原城市名 + "市")) {
+          归属主市 = 原城市名 + "市";
+        }
+
+        if (归属主市) {
+          const 辖区数组 = districtMap[归属主市] || [];
+          for (let j = 0; j < 辖区数组.length; j += 1) {
+            const 辖区名 = String(辖区数组[j] || "").trim();
+            if (!辖区名) {
+              continue;
+            }
+            if (地址.includes(辖区名)) {
+              原城市名 = 辖区名;
+              break;
+            }
+          }
+        }
+
+        const 城市键 = 清洗城市名(原城市名);
+        const 设施类型 = String(行["设施类型"] || "未分类").trim() || "未分类";
+
+        if (!城市键) {
+          continue;
+        }
+
+        if (!设施字典[城市键]) {
+          设施字典[城市键] = {
+            城市键: 城市键,
+            代表城市名: 原城市名 || 城市键,
+            设施总数: 0,
+            设施分类字典: Object.create(null)
+          };
+        }
+
+        if (!设施字典[城市键].设施分类字典[设施类型]) {
+          设施字典[城市键].设施分类字典[设施类型] = [];
+        }
+
+        const 设施对象 = {
+          名称: String(行["名称"] || "未命名设施"),
+          地址: 地址.trim() || "地址缺失",
+          城市: 原城市名 || 城市键,
+          省份: 省份,
+          设施类型: 设施类型,
+          经度: Number(行["wgs84_lng"] || 行["经度"] || 0),
+          纬度: Number(行["wgs84_lat"] || 行["纬度"] || 0)
+        };
+
+        设施字典[城市键].设施分类字典[设施类型].push(设施对象);
+        设施字典[城市键].设施总数 += 1;
+
+        if (!全国分类计数[设施类型]) {
+          全国分类计数[设施类型] = 0;
+        }
+        全国分类计数[设施类型] += 1;
+      }
+
+      const 城市键数组 = Object.keys(设施字典);
+      for (let c = 0; c < 城市键数组.length; c += 1) {
+        const 城市键 = 城市键数组[c];
+        const 城市对象 = 设施字典[城市键];
+        const 别名数组 = 生成城市别名(城市对象.代表城市名).concat(生成城市别名(城市键));
+
+        for (let a = 0; a < 别名数组.length; a += 1) {
+          const 别名 = 别名数组[a];
+          if (!城市映射索引.has(别名)) {
+            城市映射索引.set(别名, 城市键);
+          }
+        }
+      }
+
+      const 类型数组 = Object.keys(全国分类计数).sort(function(前项, 后项) {
+        return 全国分类计数[后项] - 全国分类计数[前项];
+      });
+
+      return {
+        设施字典: 设施字典,
+        城市映射索引: 城市映射索引,
+        类型数组: 类型数组
+      };
+    }
+
+    function 构建压力索引(压力行) {
+      const 别名索引 = new Map();
+
+      for (let i = 0; i < 压力行.length; i += 1) {
+        const 行 = 压力行[i];
+        const 城市名 = String(行["城市"] || "").trim();
+        if (!城市名) {
+          continue;
+        }
+        const 别名数组 = 生成城市别名(城市名);
+        for (let j = 0; j < 别名数组.length; j += 1) {
+          const 别名 = 别名数组[j];
+          if (!别名索引.has(别名)) {
+            别名索引.set(别名, 行);
+          }
+        }
+      }
+
+      return 别名索引;
+    }
+
+    function 构建地图序列数据(压力行, 地图索引) {
+      const 地图数据数组 = [];
+      const 已映射地图名集合 = new Set();
+      const unmatched = [];
+
+      for (let i = 0; i < 压力行.length; i += 1) {
+        const 行 = 压力行[i];
+        const 城市名 = String(行["城市"] || "").trim();
+        if (!城市名) {
+          continue;
+        }
+
+        const 匹配地图名 = findBestGeoName(城市名, 地图索引);
+        if (!匹配地图名) {
+          unmatched.push(城市名);
+          continue;
+        }
+        if (已映射地图名集合.has(匹配地图名)) {
+          continue;
+        }
+
+        const 老龄人口数 = Number(行["老龄人口数"]);
+        const 设施总数 = Number(行["设施总数"]);
+        const 原始压力值 = Number(行["原始压力值(raw)"]);
+        const 压力指数 = Number(行["适老化服务压力指数"]);
+
+        地图数据数组.push({
+          name: 匹配地图名,
+          value: !isNaN(压力指数) ? Math.max(0, Math.min(100, 压力指数)) : null,
+          老龄人口数: !isNaN(老龄人口数) ? 老龄人口数 : null,
+          设施总数: !isNaN(设施总数) ? 设施总数 : null,
+          原始压力值: !isNaN(原始压力值) ? 原始压力值 : null
+        });
+
+        已映射地图名集合.add(匹配地图名);
+      }
+
+      // 没数据的地方补个0，不然地图会有灰洞
+      for (let i = 0; i < 地图索引.length; i += 1) {
+        const 地图项 = 地图索引[i];
+        if (!地图项 || !地图项.地图名 || 已映射地图名集合.has(地图项.地图名)) {
+          continue;
+        }
+        地图数据数组.push({
+          name: 地图项.地图名,
+          value: 0,
+          老龄人口数: null,
+          设施总数: null,
+          原始压力值: null
+        });
+      }
+
+      if (unmatched.length) {
+        console.log("未匹配:", unmatched.slice(0, 20));
+      }
+
+      return 地图数据数组;
+    }
+
+    function 统计全国设施类别() {
+      const 分类统计 = Object.create(null);
+      const 城市键数组 = Object.keys(城市设施字典);
+
+      for (let i = 0; i < 城市键数组.length; i += 1) {
+        const 城市键 = 城市键数组[i];
+        const 分类字典 = 城市设施字典[城市键].设施分类字典;
+        const 类型数组 = Object.keys(分类字典);
+        for (let k = 0; k < 类型数组.length; k += 1) {
+          const 类型 = 类型数组[k];
+          if (!分类统计[类型]) {
+            分类统计[类型] = 0;
+          }
+          分类统计[类型] += 分类字典[类型].length;
+        }
+      }
+
+      return Object.keys(分类统计).map(function(类型) {
+        return { name: 类型, value: 分类统计[类型] };
+      }).sort(function(前项, 后项) {
+        return 后项.value - 前项.value;
+      });
+    }
+
+    function 转义文本(内容) {
+      return String(内容 == null ? "" : 内容)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function 有值(值) {
+      return 值 || 值 === 0;
+    }
+
+    function 渲染地图(地图序列数据) {
+      地图图表.setOption({
+        backgroundColor: "transparent",
+        tooltip: {
+          trigger: "item",
+          confine: true,
+          backgroundColor: "rgba(12, 20, 40, 0.88)",
+          borderColor: "rgba(90, 185, 255, 0.8)",
+          borderWidth: 1,
+          padding: [10, 12],
+          textStyle: {
+            color: "#dff1ff",
+            fontSize: 13,
+            lineHeight: 20
+          },
+          formatter: function(参数) {
+            const 数据项 = 参数 ? 参数.data : null;
+            const 区域名 = 参数 && 参数.name ? 参数.name : "未知区域";
+
+            const 压力指数无效 = !数据项 || 数据项.value == null || Number.isNaN(Number(数据项.value));
+            const 老龄人口无效 = !数据项 || 数据项.老龄人口数 == null || Number.isNaN(Number(数据项.老龄人口数));
+            const 设施总数无效 = !数据项 || 数据项.设施总数 == null || Number.isNaN(Number(数据项.设施总数));
+            if (压力指数无效 || 老龄人口无效 || 设施总数无效) {
+              return "<div style='font-weight:700;color:#9ed6ff;margin-bottom:4px;'>" + 区域名 + "</div>暂无统计数据";
+            }
+
+            const 老龄人口文案 = Number.isFinite(数据项.老龄人口数) ? 数据项.老龄人口数.toLocaleString() + " 人" : "暂无数据";
+            const 设施总数文案 = Number.isFinite(数据项.设施总数) ? 数据项.设施总数.toLocaleString() + " 个" : "暂无数据";
+            const 压力指数文案 = Number.isFinite(数据项.value) ? Number(数据项.value).toFixed(2) : "暂无数据";
+            const 原始值文案 = Number.isFinite(数据项.原始压力值) ? Number(数据项.原始压力值).toFixed(2) : "暂无数据";
+
+            return [
+              "<div style='font-weight:700;color:#9ed6ff;margin-bottom:4px;'>" + 区域名 + "</div>",
+              "老龄人口：" + 老龄人口文案,
+              "适老化设施：" + 设施总数文案,
+              "压力指数：" + 压力指数文案 + " (原始值: " + 原始值文案 + ")"
+            ].join("<br/>");
+          }
+        },
+        visualMap: {
+          min: 0,
+          max: 100,
+          calculable: true,
+          orient: "vertical",
+          right: 18,
+          bottom: 24,
+          itemWidth: 12,
+          itemHeight: 140,
+          text: ["高压力", "低压力"],
+          textStyle: {
+            color: "#b7d7ff",
+            fontSize: 12
+          },
+          inRange: {
+            color: ["#1e90ff", "#35d7ff", "#ff9f43", "#ff4d4f"]
+          },
+          outOfRange: {
+            color: ["#1b2748"]
+          }
+        },
+        series: [
+          {
+            name: "适老化服务压力指数",
+            type: "map",
+            map: "全国地市图",
+            roam: true,
+            zoom: 1.05,
+            selectedMode: false,
+            emphasis: {
+              label: {
+                color: "#ffffff"
+              },
+              itemStyle: {
+                areaColor: "#ffd166",
+                borderColor: "#fff4cf",
+                borderWidth: 1.2,
+                shadowBlur: 12,
+                shadowColor: "rgba(255, 209, 102, 0.48)"
+              }
+            },
+            itemStyle: {
+              borderColor: "rgba(120, 190, 255, 0.55)",
+              borderWidth: 0.7,
+              areaColor: "rgba(45, 68, 102, 0.8)"
+            },
+            label: {
+              show: false
+            },
+            data: 地图序列数据
+          }
+        ]
+      }, true);
+    }
+
+    function 渲染全国玫瑰图() {
+      const 容器 = document.getElementById("chart-rose");
+      容器.innerHTML = "";
+
+      const 画布 = document.createElement("div");
+      画布.className = "chart-canvas";
+      容器.appendChild(画布);
+
+      全国玫瑰图 = echarts.init(画布, null, { renderer: "canvas" });
+      const 全国分类数组 = 统计全国设施类别();
+
+      if (!全国分类数组.length) {
+        全国玫瑰图.setOption({
+          title: {
+            text: "暂无设施数据",
+            left: "center",
+            top: "middle",
+            textStyle: { color: "#9fb7de", fontSize: 14, fontWeight: "normal" }
+          }
+        });
+        return;
+      }
+
+      全国玫瑰图.setOption({
+        backgroundColor: "transparent",
+        color: ["#35d7ff", "#1e90ff", "#5ea7ff", "#ff9f43", "#ff6b57", "#63f5ba"],
+        tooltip: {
+          trigger: "item",
+          formatter: function(参数) {
+            const 占比 = 参数.percent == null ? 0 : 参数.percent;
+            return 参数.name + "<br/>数量：" + 参数.value.toLocaleString() + "<br/>占比：" + Number(占比).toFixed(2) + "%";
+          }
+        },
+        series: [
+          {
+            name: "全国设施类别",
+            type: "pie",
+            radius: ["10%", "65%"],
+            center: ["50%", "50%"],
+            itemStyle: {
+              borderRadius: 2,
+              borderColor: "rgba(255,255,255,0.22)",
+              borderWidth: 1
+            },
+            label: {
+              color: "#cbe6ff",
+              fontSize: 11,
+              formatter: "{b}\n{d}%"
+            },
+            labelLine: {
+              length: 12,
+              length2: 15,
+              lineStyle: {
+                color: "rgba(122, 201, 255, 0.55)",
+                width: 1
+              }
+            },
+            data: 全国分类数组
+          }
+        ]
+      });
+    }
+
+    function 渲染预警柱图() {
+      const 容器 = document.getElementById("chart-bar");
+      容器.innerHTML = "";
+
+      const 画布 = document.createElement("div");
+      画布.className = "chart-canvas";
+      容器.appendChild(画布);
+      预警柱图 = echarts.init(画布, null, { renderer: "canvas" });
+
+      const 排序结果 = 压力数据行数组.filter(function(行) {
+        const 压力值 = Number(行["适老化服务压力指数"]);
+        const 老龄人口 = Number(行["老龄人口数"]);
+        const 设施总数 = Number(行["设施总数"]);
+        return !isNaN(压力值) && !isNaN(老龄人口) && !isNaN(设施总数);
+      }).sort(function(前项, 后项) {
+        return Number(后项["适老化服务压力指数"]) - Number(前项["适老化服务压力指数"]);
+      }).slice(0, 10).map(function(行) {
+        return {
+          城市: String(行["城市"] || "未知城市"),
+          压力值: Number(行["适老化服务压力指数"]),
+          老龄人口: Number(行["老龄人口数"]),
+          设施总数: Number(行["设施总数"])
+        };
+      });
+
+      if (!排序结果.length) {
+        预警柱图.setOption({
+          title: {
+            text: "暂无可用数据",
+            left: "center",
+            top: "middle",
+            textStyle: { color: "#9fb7de", fontSize: 14, fontWeight: "normal" }
+          }
+        });
+        return;
+      }
+
+      const 最大老龄人口 = Math.max.apply(null, 排序结果.map(function(项) { return 项.老龄人口; }).concat([1]));
+      const 最大设施总数 = Math.max.apply(null, 排序结果.map(function(项) { return 项.设施总数; }).concat([1]));
+
+      const 老龄归一化 = 排序结果.map(function(项) {
+        return Number((项.老龄人口 / 最大老龄人口 * 100).toFixed(2));
+      });
+      const 设施归一化 = 排序结果.map(function(项) {
+        return Number((项.设施总数 / 最大设施总数 * 100).toFixed(2));
+      });
+
+      预警柱图.setOption({
+        backgroundColor: "transparent",
+        grid: {
+          top: 36,
+          right: 18,
+          bottom: 8,
+          left: "3%",
+          containLabel: true
+        },
+        legend: {
+          top: 2,
+          right: 4,
+          itemWidth: 12,
+          itemHeight: 8,
+          textStyle: {
+            color: "#a8cfff",
+            fontSize: 11
+          },
+          data: ["老龄人口", "设施总数"]
+        },
+        tooltip: {
+          trigger: "axis",
+          axisPointer: { type: "shadow" },
+          formatter: function(参数数组) {
+            const 城市名 = 参数数组 && 参数数组[0] ? 参数数组[0].name : "未知城市";
+            const 原始项 = 排序结果.find(function(项) { return 项.城市 === 城市名; });
+            if (!原始项) {
+              return "";
+            }
+            return [
+              城市名,
+              "老龄人口：" + 原始项.老龄人口.toLocaleString() + " 人",
+              "设施总数：" + 原始项.设施总数.toLocaleString() + " 个",
+              "压力指数：" + 原始项.压力值.toFixed(2)
+            ].join("<br/>");
+          }
+        },
+        xAxis: {
+          type: "value",
+          min: 0,
+          max: 100,
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: { show: false },
+          splitLine: { show: false }
+        },
+        yAxis: {
+          type: "category",
+          inverse: true,
+          data: 排序结果.map(function(项) { return 项.城市; }),
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: {
+            color: "#9fd4ff",
+            fontSize: 12,
+            margin: 12,
+            width: 86,
+            overflow: "truncate"
+          }
+        },
+        series: [
+          {
+            name: "老龄人口",
+            type: "bar",
+            data: 老龄归一化,
+            barWidth: 10,
+            barGap: "40%",
+            itemStyle: {
+              borderRadius: [0, 999, 999, 0],
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                { offset: 0, color: "#1e90ff" },
+                { offset: 1, color: "#35d7ff" }
+              ])
+            }
+          },
+          {
+            name: "设施总数",
+            type: "bar",
+            data: 设施归一化,
+            barWidth: 10,
+            itemStyle: {
+              borderRadius: [0, 999, 999, 0],
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                { offset: 0, color: "#2cc76f" },
+                { offset: 1, color: "#6df7be" }
+              ])
+            }
+          }
+        ]
+      });
+    }
+
+    function 渲染散点图() {
+      const 容器 = document.getElementById("chart-scatter");
+      容器.innerHTML = "";
+
+      const 画布 = document.createElement("div");
+      画布.className = "chart-canvas";
+      容器.appendChild(画布);
+      散点图 = echarts.init(画布, null, { renderer: "canvas" });
+
+      const 前五十 = 压力数据行数组.filter(function(行) {
+        const 老龄人口 = Number(行["老龄人口数"]);
+        const 设施总数 = Number(行["设施总数"]);
+        const 压力值 = Number(行["适老化服务压力指数"]);
+        return !isNaN(老龄人口) && !isNaN(设施总数) && !isNaN(压力值) && 老龄人口 > 0 && 设施总数 > 0;
+      }).sort(function(前项, 后项) {
+        return Number(后项["适老化服务压力指数"]) - Number(前项["适老化服务压力指数"]);
+      }).slice(0, 50).map(function(行) {
+        return {
+          城市: String(行["城市"] || "未知城市"),
+          老龄人口: Number(行["老龄人口数"]),
+          设施总数: Number(行["设施总数"]),
+          压力值: Number(行["适老化服务压力指数"])
+        };
+      });
+
+      if (!前五十.length) {
+        散点图.setOption({
+          title: {
+            text: "暂无可用数据",
+            left: "center",
+            top: "middle",
+            textStyle: { color: "#9fb7de", fontSize: 14, fontWeight: "normal" }
+          }
+        });
+        return;
+      }
+
+      const 老龄数组 = 前五十.map(function(项) { return 项.老龄人口; });
+      const 设施数组 = 前五十.map(function(项) { return 项.设施总数; });
+      const 压力数组 = 前五十.map(function(项) { return 项.压力值; });
+
+      const 最小压力 = Math.min.apply(null, 压力数组);
+      const 最大压力 = Math.max.apply(null, 压力数组);
+      const 平均老龄人口 = 老龄数组.reduce(function(和, 值) { return 和 + 值; }, 0) / 老龄数组.length;
+      const 平均设施总数 = 设施数组.reduce(function(和, 值) { return 和 + 值; }, 0) / 设施数组.length;
+
+      function 计算气泡大小(压力值) {
+        const 比例 = (压力值 - 最小压力) / ((最大压力 - 最小压力) || 1);
+        return 5 + 比例 * 15;
+      }
+
+      function 获取气泡色(压力值) {
+        if (压力值 > 70) {
+          return "rgba(255, 90, 90, 0.35)";
+        }
+        if (压力值 >= 40) {
+          return "rgba(255, 165, 70, 0.35)";
+        }
+        return "rgba(53, 215, 255, 0.35)";
+      }
+
+      散点图.setOption({
+        backgroundColor: "transparent",
+        grid: {
+          top: 26,
+          left: 60,
+          right: 80,
+          bottom: 46
+        },
+        tooltip: {
+          trigger: "item",
+          formatter: function(参数) {
+            const 数据项 = 参数.data;
+            return [
+              "<b>" + 数据项.name + "</b>",
+              "老龄人口：" + Number(数据项.value[0]).toLocaleString(),
+              "设施总数：" + Number(数据项.value[1]).toLocaleString(),
+              "压力指数：" + Number(数据项.value[2]).toFixed(2)
+            ].join("<br/>");
+          }
+        },
+        xAxis: {
+          type: "value",
+          name: "老龄人口数",
+          nameTextStyle: { color: "#9fc9f4" },
+          splitLine: { lineStyle: { color: "rgba(109, 168, 230, 0.16)" } },
+          axisLine: { lineStyle: { color: "rgba(140, 194, 255, 0.45)" } },
+          axisLabel: {
+            color: "#9dbbe2",
+            formatter: function(值) {
+              return (值 / 10000).toFixed(0) + "万";
+            }
+          }
+        },
+        yAxis: {
+          type: "value",
+          name: "设施总数",
+          nameTextStyle: { color: "#9fc9f4" },
+          splitLine: { lineStyle: { color: "rgba(109, 168, 230, 0.16)" } },
+          axisLine: { lineStyle: { color: "rgba(140, 194, 255, 0.45)" } },
+          axisLabel: { color: "#9dbbe2" }
+        },
+        series: [
+          {
+            type: "scatter",
+            data: 前五十.map(function(项) {
+              return {
+                name: 项.城市,
+                value: [项.老龄人口, 项.设施总数, 项.压力值],
+                itemStyle: {
+                  color: 获取气泡色(项.压力值),
+                  borderColor: "rgba(255,255,255,0.6)",
+                  borderWidth: 1.5
+                }
+              };
+            }),
+            symbolSize: function(值数组) {
+              return 计算气泡大小(值数组[2]);
+            },
+            markLine: {
+              silent: true,
+              symbol: "none",
+              label: { show: false },
+              lineStyle: {
+                type: "dashed",
+                color: "rgba(165, 222, 255, 0.7)",
+                width: 1
+              },
+              data: [
+                [
+                  { coord: [平均老龄人口, Math.min.apply(null, 设施数组)] },
+                  { coord: [平均老龄人口, Math.max.apply(null, 设施数组)] }
+                ],
+                [
+                  { coord: [Math.min.apply(null, 老龄数组), 平均设施总数] },
+                  { coord: [Math.max.apply(null, 老龄数组), 平均设施总数] }
+                ]
+              ]
+            }
+          }
+        ]
+      });
+    }
+
+    function 构建搜索面板() {
+      const 容器 = document.getElementById("search-panel");
+      容器.innerHTML = "";
+
+      const 搜索容器 = document.createElement("div");
+      搜索容器.className = "搜索容器";
+
+      const 输入区 = document.createElement("div");
+      输入区.className = "搜索输入区";
+
+      const 输入框 = document.createElement("input");
+      输入框.className = "搜索输入框";
+      输入框.placeholder = "输入城市名，例如：杭州 / 杭州市";
+
+      const 按钮 = document.createElement("button");
+      按钮.className = "搜索按钮";
+      按钮.textContent = "检索";
+
+      输入区.appendChild(输入框);
+      输入区.appendChild(按钮);
+
+      const 结果区 = document.createElement("div");
+      结果区.className = "搜索结果区";
+      结果区.innerHTML = "<div class='检索文本行'>请输入城市名称并点击“检索”。</div>";
+
+      搜索容器.appendChild(输入区);
+      搜索容器.appendChild(结果区);
+      容器.appendChild(搜索容器);
+
+      function 生成检索短评(压力值) {
+        if (压力值 > 70) {
+          return {
+            类型: "高压",
+            文案: "高压预警：建议优先增配社区医疗与15分钟生活圈服务设施。"
+          };
+        }
+        if (压力值 >= 40) {
+          return {
+            类型: "中压",
+            文案: "中压观察：基础供给可支撑，但局部片区仍需精细化补点。"
+          };
+        }
+        return {
+          类型: "安全",
+          文案: "低压宜居：供需匹配较优，可进一步优化银发消费体验场景。"
+        };
+      }
+
+      function 查询城市压力行(关键词) {
+        const 别名数组 = 生成城市别名(关键词);
+        for (let i = 0; i < 别名数组.length; i += 1) {
+          const 别名 = 别名数组[i];
+          if (压力别名索引.has(别名)) {
+            return 压力别名索引.get(别名);
+          }
+        }
+
+        const 清洗关键词 = 清洗城市名(关键词);
+        for (let i = 0; i < 压力数据行数组.length; i += 1) {
+          const 行 = 压力数据行数组[i];
+          const 城市名 = String(行["城市"] || "");
+          const 清洗城市 = 清洗城市名(城市名);
+          if (清洗城市 && (清洗城市.includes(清洗关键词) || 清洗关键词.includes(清洗城市))) {
+            return 行;
+          }
+        }
+
+        return null;
+      }
+
+      function 执行检索() {
+        const 关键词 = String(输入框.value || "").trim();
+        if (!关键词) {
+          结果区.innerHTML = "<div class='检索文本行'>等待输入，自动为您推荐...</div>";
+          return;
+        }
+
+        const 匹配行 = 查询城市压力行(关键词);
+        if (!匹配行) {
+          结果区.innerHTML = "<div class='检索文本行'>未查找到该地区，请尝试输入更完整的城市名称。</div>";
+          return;
+        }
+
+        const 城市名 = String(匹配行["城市"] || "未知城市");
+        const 老龄人口 = Number(匹配行["老龄人口数"]);
+        const 设施总数 = Number(匹配行["设施总数"]);
+        const 压力值 = Number(匹配行["适老化服务压力指数"]);
+
+        const 老龄文案 = 有值(老龄人口) ? 老龄人口.toLocaleString() + " 人" : "暂无数据";
+        const 设施文案 = 有值(设施总数) ? 设施总数.toLocaleString() + " 个" : "暂无数据";
+        const 压力文案 = 有值(压力值) ? 压力值.toFixed(2) : "暂无数据";
+
+        const 短评对象 = 生成检索短评(有值(压力值) ? 压力值 : 0);
+
+        结果区.innerHTML = "";
+
+        const 标题行 = document.createElement("div");
+        标题行.className = "检索城市名";
+        标题行.textContent = 城市名;
+
+        const 信息行一 = document.createElement("div");
+        信息行一.className = "检索文本行";
+        信息行一.textContent = "老龄人口：" + 老龄文案;
+
+        const 信息行二 = document.createElement("div");
+        信息行二.className = "检索文本行";
+        信息行二.textContent = "设施总数：" + 设施文案;
+
+        const 信息行三 = document.createElement("div");
+        信息行三.className = "检索文本行";
+        信息行三.textContent = "适老化压力指数：" + 压力文案;
+
+        const 进入按钮 = document.createElement("button");
+        进入按钮.className = "进入详情按钮";
+        进入按钮.textContent = "进入城市明细舱";
+        进入按钮.addEventListener("click", function() {
+          打开城市详情舱(城市名);
+        });
+
+        const 短评框 = document.createElement("div");
+        短评框.className = "评分提示框 " + 短评对象.类型;
+        短评框.textContent = 短评对象.文案;
+
+        结果区.appendChild(标题行);
+        结果区.appendChild(信息行一);
+        结果区.appendChild(信息行二);
+        结果区.appendChild(信息行三);
+        结果区.appendChild(进入按钮);
+        结果区.appendChild(短评框);
+
+        高亮地图区域(城市名);
+      }
+
+      按钮.addEventListener("click", 执行检索);
+      输入框.addEventListener("keydown", function(事件) {
+        if (事件.key === "Enter") {
+          执行检索();
+        }
+      });
+    }
+
+    function 获取设施城市键(城市名) {
+      const 别名数组 = 生成城市别名(城市名);
+      for (let i = 0; i < 别名数组.length; i += 1) {
+        const 别名 = 别名数组[i];
+        if (城市别名索引.has(别名)) {
+          return 城市别名索引.get(别名);
+        }
+      }
+
+      const 清洗名 = 清洗城市名(城市名);
+      if (城市设施字典[清洗名]) {
+        return 清洗名;
+      }
+
+      const 全部键 = Object.keys(城市设施字典);
+      for (let i = 0; i < 全部键.length; i += 1) {
+        const 城市键 = 全部键[i];
+        if (城市键.includes(清洗名) || 清洗名.includes(城市键)) {
+          return 城市键;
+        }
+      }
+
+      return "";
+    }
+
+    function 查询压力行(城市名) {
+      const 别名数组 = 生成城市别名(城市名);
+      for (let i = 0; i < 别名数组.length; i += 1) {
+        const 别名 = 别名数组[i];
+        if (压力别名索引.has(别名)) {
+          return 压力别名索引.get(别名);
+        }
+      }
+      return null;
+    }
+
+    function 高亮地图区域(城市名) {
+      const 目标区域名 = 匹配地图城市名(城市名, 地图城市索引列表);
+      if (!目标区域名) {
+        return;
+      }
+
+      if (lastRegion && lastRegion !== 目标区域名) {
+        地图图表.dispatchAction({
+          type: "downplay",
+          seriesIndex: 0,
+          name: lastRegion
+        });
+      }
+
+      地图图表.dispatchAction({
+        type: "highlight",
+        seriesIndex: 0,
+        name: 目标区域名
+      });
+
+      地图图表.dispatchAction({
+        type: "showTip",
+        seriesIndex: 0,
+        name: 目标区域名
+      });
+
+      lastRegion = 目标区域名;
+    }
+
+    function 初始化详情图表() {
+      if (!城市详情图) {
+        const 图表容器 = document.getElementById("详情图表画布");
+        城市详情图 = echarts.init(图表容器, null, { renderer: "canvas" });
+        if (window.ResizeObserver) {
+          const 观察器 = new ResizeObserver(function() {
+            if (城市详情图) 城市详情图.resize();
+          });
+          观察器.observe(图表容器);
+        }
+      }
+    }
+
+    function 渲染详情左侧图() {
+      初始化详情图表();
+      const 城市对象 = 当前详情城市键 ? 城市设施字典[当前详情城市键] : null;
+
+      if (!城市对象 || 城市对象.设施总数 <= 0) {
+        城市详情图.setOption({
+          title: {
+            text: "无明细数据",
+            subtext: "该城市在 all_facilities_cleaned.csv 中暂无设施记录",
+            left: "center",
+            top: "center",
+            textStyle: { color: "#b7d2ee", fontSize: 20, fontWeight: "bold" },
+            subtextStyle: { color: "#8eaed0", fontSize: 12 }
+          },
+          series: []
+        }, true);
+        return;
+      }
+
+      const 分类数据数组 = 全国设施类型数组.map(function(类型) {
+        const 列表 = 城市对象.设施分类字典[类型] || [];
+        return {
+          name: 类型,
+          value: 列表.length
+        };
+      });
+
+      城市详情图.setOption({
+        backgroundColor: "transparent",
+        color: ["#5de2ff", "#45a6ff", "#7dc2ff", "#ffa14e", "#ff6b6b", "#63f5ba"],
+        tooltip: {
+          trigger: "item",
+          formatter: function(参数) {
+            const 占比 = 参数.percent == null ? 0 : 参数.percent;
+            return 参数.name + "<br/>数量：" + 参数.value.toLocaleString() + "<br/>占比：" + Number(占比).toFixed(2) + "%";
+          }
+        },
+        series: [
+          {
+            name: "城市设施占比",
+            type: "pie",
+            radius: ["15%", "65%"],
+            center: ["50%", "50%"],
+            minShowLabelAngle: 2,
+            itemStyle: {
+              borderRadius: 2,
+              borderColor: "rgba(255,255,255,0.26)",
+              borderWidth: 1
+            },
+            label: {
+              color: "#d8efff",
+              formatter: "{b}\n{c}个 ({d}%)",
+              fontSize: 11,
+              lineHeight: 16
+            },
+            labelLine: {
+              length: 12,
+              length2: 20,
+              lineStyle: {
+                color: "rgba(144, 214, 255, 0.6)"
+              }
+            },
+            data: 分类数据数组
+          }
+        ]
+      }, true);
+    }
+
+    function 渲染详情标签区() {
+      分类标签区节点.innerHTML = "";
+
+      const 城市对象 = 当前详情城市键 ? 城市设施字典[当前详情城市键] : null;
+      if (!城市对象 || 城市对象.设施总数 <= 0) {
+        const 空状态 = document.createElement("div");
+        空状态.className = "无数据状态";
+        空状态.innerHTML = "<div class='无数据状态主文案'>该城市暂无可筛选类别</div><div class='无数据状态副文案'>请在地图或搜索中切换其它城市查看。</div>";
+        分类标签区节点.appendChild(空状态);
+        return;
+      }
+
+      for (let i = 0; i < 全国设施类型数组.length; i += 1) {
+        const 类型 = 全国设施类型数组[i];
+        const 数量 = (城市对象.设施分类字典[类型] || []).length;
+
+        const 标签按钮 = document.createElement("button");
+        标签按钮.className = "分类标签" + (当前详情分类 === 类型 ? " 激活" : "");
+        标签按钮.textContent = 类型 + "（" + 数量 + "）";
+        标签按钮.addEventListener("click", function() {
+          当前详情分类 = 类型;
+          渲染详情标签区();
+          渲染详情列表区();
+        });
+
+        分类标签区节点.appendChild(标签按钮);
+      }
+    }
+
+    function 渲染详情列表区() {
+      设施列表区节点.innerHTML = "";
+      列表截断提示节点.style.display = "none";
+
+      const 城市对象 = 当前详情城市键 ? 城市设施字典[当前详情城市键] : null;
+      if (!城市对象 || 城市对象.设施总数 <= 0) {
+        设施列表区节点.innerHTML = "<div class='无数据状态'><div class='无数据状态主文案'>无明细数据</div><div class='无数据状态副文案'>该城市未检索到设施点位记录。\n请尝试其它地市。</div></div>";
+        return;
+      }
+
+      const 目标列表 = 城市对象.设施分类字典[当前详情分类] || [];
+      if (!目标列表.length) {
+        设施列表区节点.innerHTML = "<div class='无数据状态'><div class='无数据状态主文案'>该类别暂无记录</div><div class='无数据状态副文案'>可点击上方其他类别标签继续查看。</div></div>";
+        return;
+      }
+
+      const 需渲染列表 = 目标列表.slice(0, 列表渲染上限);
+      const 文档片段 = document.createDocumentFragment();
+
+      for (let i = 0; i < 需渲染列表.length; i += 1) {
+        const 设施 = 需渲染列表[i];
+
+        const 卡片 = document.createElement("div");
+        卡片.className = "设施卡片";
+        卡片.innerHTML = ""
+          + "<div class='设施名称'>" + 转义文本(设施.名称) + "</div>"
+          + "<div class='设施信息行'>类型：" + 转义文本(设施.设施类型) + "</div>"
+          + "<div class='设施信息行'>地址：" + 转义文本(设施.地址) + "</div>";
+
+        文档片段.appendChild(卡片);
+      }
+
+      设施列表区节点.appendChild(文档片段);
+
+      if (目标列表.length > 列表渲染上限) {
+        列表截断提示节点.style.display = "block";
+      }
+    }
+
+    function 打开城市详情舱(城市名) {
+      const 城市键 = 获取设施城市键(城市名);
+      const 城市对象 = 城市键 ? 城市设施字典[城市键] : null;
+      const 压力行 = 查询压力行(城市名);
+      const 压力值 = 压力行 ? Number(压力行["适老化服务压力指数"]) : null;
+
+      当前详情城市键 = 城市键;
+      当前详情城市标题 = 城市对象 ? 城市对象.代表城市名 : String(城市名 || "未知城市");
+
+      if (城市对象 && 城市对象.设施总数 > 0) {
+        const 分类排序 = 全国设施类型数组.slice().sort(function(前项, 后项) {
+          const 前值 = (城市对象.设施分类字典[前项] || []).length;
+          const 后值 = (城市对象.设施分类字典[后项] || []).length;
+          return 后值 - 前值;
+        });
+        当前详情分类 = 分类排序[0] || 全国设施类型数组[0] || "";
+      } else {
+        当前详情分类 = 全国设施类型数组[0] || "";
+      }
+
+      详情主标题节点.textContent = 当前详情城市标题 + " 城市详情舱";
+      if (有值(压力值)) {
+        详情副标题节点.textContent = "当前适老化服务压力指数：" + 压力值.toFixed(2) + " ｜ 点击上方类别筛选查看明细";
+      } else {
+        详情副标题节点.textContent = "当前城市在压力指标表中暂无完整记录 ｜ 点击上方类别筛选查看明细";
+      }
+
+      城市详情遮罩.classList.add("显示");
+      渲染详情左侧图();
+      渲染详情标签区();
+      渲染详情列表区();
+
+      高亮地图区域(当前详情城市标题);
+    }
+
+    function 关闭城市详情舱() {
+      城市详情遮罩.classList.remove("显示");
+    }
+
+    function 绑定详情舱关闭交互() {
+      const 关闭按钮 = document.getElementById("详情关闭按钮");
+      const 详情容器 = document.getElementById("城市详情容器");
+
+      关闭按钮.addEventListener("click", 关闭城市详情舱);
+      城市详情遮罩.addEventListener("click", function() {
+        关闭城市详情舱();
+      });
+
+      详情容器.addEventListener("click", function(事件) {
+        事件.stopPropagation();
+      });
+
+      document.addEventListener("keydown", function(事件) {
+        if (事件.key === "Escape" && 城市详情遮罩.classList.contains("显示")) {
+          关闭城市详情舱();
+        }
+      });
+    }
+
+    function 绑定地图点击交互() {
+      地图图表.off("click");
+      地图图表.on("click", function(参数) {
+        if (!参数 || !参数.name) {
+          return;
+        }
+        打开城市详情舱(参数.name);
+      });
+    }
+
+    async function 启动大屏() {
+      try {
+        const [地图GeoJSON, CSV结果] = await Promise.all([
+          $.getJSON(地图地址),
+          加载CSV数据()
+        ]);
+
+        压力数据行数组 = CSV结果[0];
+        设施数据行数组 = CSV结果[1];
+
+        const 地图索引 = 构建地图城市索引(地图GeoJSON);
+        地图城市索引列表 = 地图索引;
+
+        const 设施索引结果 = 构建设施索引(设施数据行数组);
+        城市设施字典 = 设施索引结果.设施字典;
+        城市别名索引 = 设施索引结果.城市映射索引;
+        全国设施类型数组 = 设施索引结果.类型数组;
+
+        压力别名索引 = 构建压力索引(压力数据行数组);
+
+        const 地图序列数据 = 构建地图序列数据(压力数据行数组, 地图索引);
+
+        echarts.registerMap("全国地市图", 地图GeoJSON);
+        渲染地图(地图序列数据);
+        渲染全国玫瑰图();
+        渲染预警柱图();
+        渲染散点图();
+        构建搜索面板();
+        绑定地图点击交互();
+        绑定详情舱关闭交互();
+      } catch (错误) {
+        console.error("init error:", 错误);
+        地图图表.setOption({
+          title: {
+            text: "数据加载失败",
+            subtext: "请检查 CSV 相对路径、网络连通性，或在本地模式下按提示选择数据目录",
+            left: "center",
+            top: "middle",
+            textStyle: { color: "#ff8a8a", fontSize: 24, fontWeight: "bold" },
+            subtextStyle: { color: "#b7c7e6", fontSize: 14 }
+          }
+        });
+      } finally {
+        地图图表.hideLoading();
+      }
+    }
+
+    启动大屏();
+
+    window.addEventListener("resize", function() {
+      地图图表.resize();
+      if (全国玫瑰图) {
+        全国玫瑰图.resize();
+      }
+      if (预警柱图) {
+        预警柱图.resize();
+      }
+      if (散点图) {
+        散点图.resize();
+      }
+      if (城市详情图) {
+        城市详情图.resize();
+      }
+    });
+  </script>
+</body>
+</html>
